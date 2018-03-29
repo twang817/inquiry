@@ -2,20 +2,27 @@ from __future__ import print_function
 
 from collections import Mapping
 
+from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.shortcuts import run_application
 from prompt_toolkit.token import Token
 
 from .. import prompts
 
 
+# avoids the cell-var-from-loop warning in pylint
+def get_prompt_tokens_factory(tokens):
+    def get_prompt_tokens(_cli):
+        return tokens
+    return get_prompt_tokens
+
 class Prompt(object):
     def __init__(self):
         self.restoreDefaultPrompts()
 
-    def restoreDefaultPrompts(self):
+    def restoreDefaultPrompts(self): # pylint: disable=invalid-name
         self.prompts = {k: getattr(prompts, k) for k in prompts.__all__}
 
-    def registerPrompt(self, name, prompt):
+    def registerPrompt(self, name, prompt): # pylint: disable=invalid-name
         self.prompts[name] = prompt
 
     def __call__(self, questions, **kwargs):
@@ -27,6 +34,8 @@ class Prompt(object):
         run_kw = 'patch_stdout return_asyncio_coroutine true_color refresh_interval eventloop'.split()
         run_kw = {k: kwargs.pop(k) for k in run_kw if k in kwargs}
         run_kw.setdefault('true_color', True)
+
+        history = InMemoryHistory()
 
         for question in questions:
             kw = {}
@@ -50,7 +59,7 @@ class Prompt(object):
                 (Token.Prompt.Suffix, kw.pop('suffix', '')),
                 (Token.Space, ' '),
             ]
-            kw['get_prompt_tokens'] = lambda cli: tokens
+            kw['get_prompt_tokens'] = get_prompt_tokens_factory(tokens)
 
             # handle defaults
             if callable(kw.get('default', None)):
@@ -72,6 +81,7 @@ class Prompt(object):
                     continue
 
             # ask the question
+            kw['history'] = history
             application = getattr(prompts, _type).question(**kw)
             answer = run_application(application, **run_kw)
 
@@ -80,10 +90,10 @@ class Prompt(object):
                 answer = _filter(answer)
 
             # save the response to answers
-            a = answers
+            temp = answers
             path = name.split('.')
-            for p in path[:-1]:
-                a = a.setdefault(p, {})
-            a[path[-1]] = answer
+            for part in path[:-1]:
+                temp = temp.setdefault(part, {})
+            temp[path[-1]] = answer
 
         return answers

@@ -1,30 +1,25 @@
-from ..ui import layouts, applications
+from __future__ import unicode_literals
+
+from ..ui import layouts, applications, key_bindings
 
 
-def question(get_prompt_tokens, default=None, validate=None, mask=None):
-    if mask is None:
-        hint = '[hidden]'
-    else:
-        hint = '(%s)' % (mask * len(default)) if default else None
+def question(get_prompt_tokens, choices, default=None, history=None):
     if default is not None:
-        default = u'%s' % default
-
-    def transformer(x):
-        if mask is None:
-            return (Token.Hidden, '[hidden]')
-        else:
-            return '*' * len(x)
+        default = '%s' % default
 
     layout = layouts.create_default_layout(
         get_prompt_tokens=get_prompt_tokens,
-        hint=hint,
-        transformer=transformer,
-        is_password=True,
-        password_mask=mask,
-        hide_cursor=mask is None)
+        hint='(use arrow keys)',
+        extra_hint_filter=layouts.BufferFresh(),
+        hide_cursor=True,
+        choices=choices)
+
+    registry = key_bindings.load_key_bindings_for_list()
+
+    # don't add list responses to history
+    history = None
 
     return applications.create_prompt_application(
         layout,
-        default=default,
-        validator=validate)
-
+        key_bindings_registry=registry,
+        history=history)

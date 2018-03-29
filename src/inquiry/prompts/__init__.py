@@ -1,3 +1,4 @@
-from . import input, confirm, password
+# pylint: disable=redefined-builtin
+from . import input, confirm, password, list
 
-__all__ = 'input confirm password'.split()
+__all__ = 'input confirm password list'.split()
