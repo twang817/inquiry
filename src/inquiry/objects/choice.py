@@ -14,10 +14,6 @@ class Choice(object):
                 self.reason = disabled
             else:
                 self.reason = 'Disabled'
-        self.index = None
-
-    def set_index(self, index):
-        self.index = index
 
     @property
     def name(self):

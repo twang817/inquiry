@@ -2,9 +2,9 @@ from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.mouse_events import MouseEventTypes
 
 
-def find_in_layout(cli, klass):
+def find_in_layout(cli, name):
     for child in cli.layout.walk(cli):
-        if isinstance(child, Window) and isinstance(child.content, klass):
+        if isinstance(child, Window) and getattr(child.content, 'name', None) == name:
             yield child.content
 
 def if_mousedown(handler):

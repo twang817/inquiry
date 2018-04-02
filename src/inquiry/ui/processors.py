@@ -25,15 +25,13 @@ class HintProcessor(Processor):
     def __init__(self, hint):
         self.hint = hint
     def apply_transformation(self, cli, document, lineno, source_to_display, tokens):
-        token = Token.Prompt.Hint
-        if isinstance(self.hint, (tuple, list)):
-            token, hint = self.hint
+        if callable(self.hint):
+            before = self.hint(cli)
         else:
-            hint = self.hint
-        before = [
-            (token, '%s' % hint),
-            (Token.Space, ' '),
-        ]
+            before = [
+                (Token.Prompt.Hint, '%s' % self.hint),
+                (Token.Space, ' '),
+            ]
         shift_position = token_list_len(before)
         return Transformation(
             tokens=before + tokens,

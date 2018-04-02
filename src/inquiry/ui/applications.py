@@ -15,15 +15,24 @@ from prompt_toolkit.validation import (
 
 
 DEFAULT_STYLE = style_from_dict({
+    Token.Space: 'noinherit',
     Token.Validation.Prefix: 'noinherit #ansidarkred',
-    Token.Validation.Message: 'noinherit #ansilightgray',
+    Token.Validation.Message: 'noinherit',
     Token.Prompt.Prefix: 'noinherit #ansidarkgreen',
-    Token.Prompt.Message: 'noinherit #ansiwhite',
-    Token.Prompt.Suffix: 'noinherit #ansilightgray',
+    Token.Prompt.Message: 'noinherit #ansiwhite bold',
+    Token.Prompt.Suffix: 'noinherit',
+    Token.Prompt.Hint: 'noinherit',
+    Token.Prompt.Hint.Highlight: 'noinherit #ansiteal bold',
     Token.Prompt.Transformed: 'noinherit #ansiteal',
     Token.Hidden: 'noinherit bg:#cacaca #000000',
     Token.List.Pointer: 'noinherit #ansiteal',
+    Token.List.Item: 'noinherit',
     Token.List.Item.Selected: 'noinherit #ansiteal',
+    Token.Checkbox.Pointer: 'noinherit #ansiteal',
+    Token.Checkbox.Icon: 'noinherit',
+    Token.Checkbox.Icon.Selected: 'noinherit #ansidarkgreen',
+    Token.Checkbox.Item: 'noinherit',
+    Token.Checkbox.Item.Selected: 'noinherit',
 })
 
 class Acceptor(AcceptAction):
@@ -44,7 +53,7 @@ class Acceptor(AcceptAction):
                 buf.text = self.default
         return super(Acceptor, self).validate_and_handle(cli, buf)
 
-def create_prompt_application(layout, default=None, accept_filter=None, validator=None, history=None,
+def create_prompt_application(layout, buf=None, default=None, accept_filter=None, validator=None, history=None,
                               key_bindings_registry=None, style=None, mouse_support=False):
     assert validator is None or callable(validator) or isinstance(validator, Validator)
     assert style is None or isinstance(style, Mapping)
@@ -73,7 +82,7 @@ def create_prompt_application(layout, default=None, accept_filter=None, validato
             enable_system_bindings=True,
         )
 
-    buf = Buffer(
+    buf = buf or Buffer(
         accept_action=Acceptor(default, accept_filter),
         validator=_validator,
         history=history,

@@ -1,25 +1,39 @@
 from __future__ import unicode_literals
 
-from ..ui import layouts, applications, key_bindings
+from ..ui.applications import create_prompt_application
+from ..ui.containers import InfiniteWindow
+from ..ui.controls import (
+    ListBuffer,
+    ListControl,
+)
+from ..ui.key_bindings import load_key_bindings_for_list
+from ..ui.layouts import (
+    create_default_layout,
+    BufferFresh,
+)
 
 
 def question(get_prompt_tokens, choices, default=None, page_size=None, history=None, mouse_support=True):
-    layout = layouts.create_default_layout(
+    layout = create_default_layout(
         get_prompt_tokens=get_prompt_tokens,
-        hint='(use arrow keys)',
-        extra_hint_filter=layouts.BufferFresh(),
-        page_size=page_size,
-        hide_cursor=True,
-        choices=choices,
-        default_choice=default)
+        hint='(Use arrow keys)',
+        extra_hint_filter=BufferFresh(),
+        reactive_window_class=InfiniteWindow,
+        reactive_control=ListControl(),
+        reactive_page_size=page_size,
+        hide_cursor=True)
 
-    registry = key_bindings.load_key_bindings_for_list()
+    registry = load_key_bindings_for_list()
 
     # don't add list responses to history
     history = None
 
-    return applications.create_prompt_application(
+    return create_prompt_application(
         layout,
+        buf=ListBuffer(
+            choices,
+            default,
+        ),
         key_bindings_registry=registry,
         history=history,
         mouse_support=mouse_support)

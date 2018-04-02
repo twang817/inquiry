@@ -4,7 +4,9 @@ from prompt_toolkit.filters import IsDone
 from prompt_toolkit.layout.processors import ConditionalProcessor
 from prompt_toolkit.token import Token
 
-from ..ui import layouts, applications, processors
+from ..ui.applications import create_prompt_application
+from ..ui.layouts import create_default_layout
+from ..ui.processors import PasswordProcessor
 
 
 def question(get_prompt_tokens, default=None, validate=None, mask=None, history=None):
@@ -21,19 +23,19 @@ def question(get_prompt_tokens, default=None, validate=None, mask=None, history=
             return (Token.Hidden, '[hidden]')
         return '*' * len(text)
 
-    layout = layouts.create_default_layout(
+    layout = create_default_layout(
         get_prompt_tokens=get_prompt_tokens,
         hint=hint,
         transformer=transformer,
         extra_input_processors=[
-            ConditionalProcessor(processors.PasswordProcessor(mask), ~IsDone()),
+            ConditionalProcessor(PasswordProcessor(mask), ~IsDone()),
         ],
         hide_cursor=mask is None)
 
     # don't add password responses to history
     history = None
 
-    return applications.create_prompt_application(
+    return create_prompt_application(
         layout,
         default=default,
         validator=validate,
