@@ -4,16 +4,14 @@ from ..ui import layouts, applications, key_bindings
 
 
 def question(get_prompt_tokens, choices, default=None, page_size=None, history=None, mouse_support=True):
-    if default is not None:
-        default = '%s' % default
-
     layout = layouts.create_default_layout(
         get_prompt_tokens=get_prompt_tokens,
         hint='(use arrow keys)',
         extra_hint_filter=layouts.BufferFresh(),
         page_size=page_size,
         hide_cursor=True,
-        choices=choices)
+        choices=choices,
+        default_choice=default)
 
     registry = key_bindings.load_key_bindings_for_list()
 

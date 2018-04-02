@@ -64,7 +64,8 @@ class NeedsScrollTip(Filter):
         return len(control[0].choices) > self.page_size
 
 def create_default_layout(get_prompt_tokens, get_error_tokens=None, extra_input_processors=None, hide_cursor=False,
-                          hint=None, extra_hint_filter=None, choices=None, page_size=None, transformer=None):
+                          hint=None, extra_hint_filter=None, choices=None, default_choice=None, page_size=None,
+                          transformer=None):
     has_before_tokens, get_prompt_tokens_1, get_prompt_tokens_2 = _split_multiline_prompt(get_prompt_tokens)
     assert get_prompt_tokens is None or callable(get_prompt_tokens)
     assert get_error_tokens is None or callable(get_error_tokens)
@@ -106,7 +107,7 @@ def create_default_layout(get_prompt_tokens, get_error_tokens=None, extra_input_
         ),
         ConditionalContainer(
             InfiniteWindow(
-                ListControl(choices),
+                ListControl(choices, default_choice),
                 height=LayoutDimension(max=page_size, preferred=page_size),
                 dont_extend_height=True,
                 wrap_lines=True,
