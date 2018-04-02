@@ -45,7 +45,7 @@ class Acceptor(AcceptAction):
         return super(Acceptor, self).validate_and_handle(cli, buf)
 
 def create_prompt_application(layout, default=None, accept_filter=None, validator=None, history=None,
-                              key_bindings_registry=None, style=None):
+                              key_bindings_registry=None, style=None, mouse_support=False):
     assert validator is None or callable(validator) or isinstance(validator, Validator)
     assert style is None or isinstance(style, Mapping)
 
@@ -87,4 +87,5 @@ def create_prompt_application(layout, default=None, accept_filter=None, validato
         buffer=buf,
         style=style or DEFAULT_STYLE,
         key_bindings_registry=key_bindings_registry,
+        mouse_support=mouse_support,
     )

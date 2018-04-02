@@ -7,6 +7,7 @@ from prompt_toolkit.token import Token
 import six
 
 from ..objects import Choice
+from .utils import if_mousedown
 
 
 class ListControl(TokenListControl):
@@ -72,19 +73,30 @@ class ListControl(TokenListControl):
 
     def get_list_tokens(self, _cli):
         tokens = []
-        for i, choice in enumerate(self.choices):
-            if i == self.selected:
+        def _add_choice(index, choice):
+            if index == self.selected:
                 token = Token.List.Item.Selected
                 tokens.extend([
                     (Token.List.Pointer, '\u276f'),
                     (Token.Space, ' '),
+                    (Token.SetCursorPosition, ''),
                 ])
             else:
                 token = Token.List.Item
                 tokens.append((Token.Space, '  '))
 
-            tokens.append((token, choice.name))
-            tokens.append((Token.Space, '\n'))
+            @if_mousedown
+            def onclick(cli, _mouse_event):
+                self.set_selection(index)
+                choice = self.get_choice()
+                cli.current_buffer.text = choice.value
+                cli.set_return_value(choice.value)
+
+            tokens.append((token, '%s\n' % choice.name, onclick))
+
+        for i, choice in enumerate(self.choices):
+            _add_choice(i, choice)
+
         return tokens
 
     def get_choice(self):

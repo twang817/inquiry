@@ -82,6 +82,10 @@ class Prompt(object):
 
             # ask the question
             kw['history'] = history
+
+            # fix pylint warning
+            kw['page_size'] = kw.pop('pageSize', None)
+
             application = getattr(prompts, _type).question(**kw)
             answer = run_application(application, **run_kw)
 

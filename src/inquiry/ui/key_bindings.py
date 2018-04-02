@@ -8,19 +8,15 @@ from prompt_toolkit.key_binding.registry import (
     MergedRegistry,
 )
 from prompt_toolkit.key_binding.bindings.basic import (
-    load_basic_system_bindings,
     load_abort_and_exit_bindings,
+    load_basic_system_bindings,
+    load_mouse_bindings,
 )
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout.containers import Window
 
 from .controls import ListControl
+from .utils import find_in_layout
 
-
-def find_in_layout(cli, klass):
-    for child in cli.layout.walk(cli):
-        if isinstance(child, Window) and isinstance(child.content, klass):
-            yield child.content
 
 def load_list_bindings():
     registry = Registry()
@@ -60,12 +56,25 @@ def load_list_bindings():
         event.cli.current_buffer.text = choice.value
         event.cli.set_return_value(choice.value)
 
+    @handle(Keys.CPRResponse, save_before=lambda e: False)
+    def _(event):
+        """
+        Handle incoming Cursor-Position-Request response.
+        """
+        # The incoming data looks like u'\x1b[35;1R'
+        # Parse row/col information.
+        row, _col = map(int, event.data[2:-1].split(';'))
+
+        # Report absolute cursor position to the renderer.
+        event.cli.renderer.report_absolute_cursor_row(row)
+
     return registry
 
 def load_key_bindings_for_list():
     registry = MergedRegistry([
         load_abort_and_exit_bindings(),
         load_basic_system_bindings(),
+        load_mouse_bindings(),
         load_list_bindings(),
     ])
     return registry
