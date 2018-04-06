@@ -8,8 +8,7 @@ from prompt_toolkit.layout.screen import Point
 
 class InfiniteContent(UIContent):
     def __init__(self, content):
-        line_count = content.line_count - 1
-        lines = [content.get_line(lineno) for lineno in range(line_count)] * 3
+        lines = [content.get_line(lineno) for lineno in range(content.line_count)] * 3
         super(InfiniteContent, self).__init__(
             get_line=lambda i: lines[i],
             line_count=len(lines),
@@ -32,7 +31,7 @@ class InfiniteWindow(Window):
                    vertical_scroll_2=0, always_hide_cursor=False):
         original_ui_content = ui_content
         if self.infinite:
-            vertical_scroll = vertical_scroll + ui_content.line_count - 1
+            vertical_scroll = vertical_scroll + ui_content.line_count
             ui_content = InfiniteContent(ui_content)
 
         visible_line_to_row_col, rowcol_to_yx = super(InfiniteWindow, self)._copy_body(
@@ -44,7 +43,7 @@ class InfiniteWindow(Window):
         if self.infinite:
             patched_rowcol_to_yx = {}
             for (lineno, col), (ypos, xpos) in rowcol_to_yx.items():
-                lineno = lineno % (original_ui_content.line_count - 1)
+                lineno = lineno % (original_ui_content.line_count)
                 patched_rowcol_to_yx[lineno, col] = (ypos, xpos)
             rowcol_to_yx = patched_rowcol_to_yx
 

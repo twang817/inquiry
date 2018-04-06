@@ -40,14 +40,14 @@ def load_scroll_bindings():
     @handle('k')
     @handle('K')
     @handle(Keys.Up)
-    def _cursor_up(event):
-        event.current_buffer.cursor_up()
+    def _list_cursor_up(event):
+        event.current_buffer.list_cursor_up()
 
     @handle('j')
     @handle('J')
     @handle(Keys.Down)
-    def _cursor_down(event):
-        event.current_buffer.cursor_down()
+    def _list_cursor_down(event):
+        event.current_buffer.list_cursor_down()
 
     for key in string.digits[1:]:
         def _set_cursor(event, num):

@@ -5,6 +5,7 @@ from prompt_toolkit.buffer import (
     AcceptAction,
     Buffer,
 )
+from prompt_toolkit.enums import DEFAULT_BUFFER
 from prompt_toolkit.key_binding.defaults import load_key_bindings_for_prompt
 from prompt_toolkit.styles import style_from_dict
 from prompt_toolkit.token import Token
@@ -53,8 +54,9 @@ class Acceptor(AcceptAction):
                 buf.text = self.default
         return super(Acceptor, self).validate_and_handle(cli, buf)
 
-def create_prompt_application(layout, buf=None, default=None, accept_filter=None, validator=None, history=None,
-                              key_bindings_registry=None, style=None, mouse_support=False):
+def create_prompt_application(layout, buf=None, buffers=None, initial_focussed_buffer=DEFAULT_BUFFER, default=None,
+                              accept_filter=None, validator=None, history=None, key_bindings_registry=None, style=None,
+                              mouse_support=False):
     assert validator is None or callable(validator) or isinstance(validator, Validator)
     assert style is None or isinstance(style, Mapping)
 
@@ -94,6 +96,8 @@ def create_prompt_application(layout, buf=None, default=None, accept_filter=None
     return Application(
         layout=layout,
         buffer=buf,
+        buffers=buffers,
+        initial_focussed_buffer=initial_focussed_buffer,
         style=style or DEFAULT_STYLE,
         key_bindings_registry=key_bindings_registry,
         mouse_support=mouse_support,

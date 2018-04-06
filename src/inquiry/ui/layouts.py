@@ -60,7 +60,7 @@ class NeedsScrollTip(Filter):
 
 def create_default_layout(get_prompt_tokens, get_error_tokens=None, extra_input_processors=None, hide_cursor=False,
                           hint=None, extra_hint_filter=None, reactive_window_class=None, reactive_control=None,
-                          reactive_page_size=None, transformer=None):
+                          additional_reactive_windows=None, reactive_page_size=None, transformer=None):
     has_before_tokens, get_prompt_tokens_1, get_prompt_tokens_2 = _split_multiline_prompt(get_prompt_tokens)
 
     assert get_prompt_tokens is None or callable(get_prompt_tokens)
@@ -85,6 +85,9 @@ def create_default_layout(get_prompt_tokens, get_error_tokens=None, extra_input_
         DefaultPrompt(get_prompt_tokens_2),
     ])
 
+    if additional_reactive_windows is None:
+        additional_reactive_windows = []
+
     return HSplit([
         ConditionalContainer(
             Window(
@@ -106,7 +109,7 @@ def create_default_layout(get_prompt_tokens, get_error_tokens=None, extra_input_
             HSplit([
                 reactive_window_class(
                     reactive_control or TokenListControl(lambda x: []),
-                    height=LayoutDimension(max=reactive_page_size, preferred=reactive_page_size),
+                    height=LayoutDimension(max=reactive_page_size),
                     dont_extend_height=True,
                     wrap_lines=True,
                 ),
@@ -118,7 +121,7 @@ def create_default_layout(get_prompt_tokens, get_error_tokens=None, extra_input_
                     ),
                     filter=NeedsScrollTip(reactive_page_size) & ~IsDone(),
                 ),
-            ]),
+            ] + additional_reactive_windows),
             filter=has_reactive & ~IsDone(),
         ),
         ConditionalContainer(

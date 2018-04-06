@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from collections import Mapping
+from functools import partial
 
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.shortcuts import run_application
@@ -86,6 +87,11 @@ class Prompt(object):
             # fix pylint warning
             if 'pageSize' in kw:
                 kw['page_size'] = kw.pop('pageSize', None)
+
+            # bind answers to transformer
+            if 'transformer' in kw:
+                transformer = kw.pop('transformer')
+                kw['transformer'] = lambda x: transformer(x, answers)
 
             application = getattr(prompts, _type).question(**kw)
             answer = run_application(application, **run_kw)

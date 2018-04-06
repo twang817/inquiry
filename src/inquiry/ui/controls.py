@@ -57,13 +57,14 @@ class ListBuffer(Buffer):
 
     @cursor.setter
     def cursor(self, value):
-        assert isinstance(value, int)
-        assert value < len(self.choices)
+        if value is not None:
+            assert isinstance(value, int)
+            assert value < len(self.choices)
         if self._cursor != value:
             self._cursor = value
-            self._cursor_changed()
+            self._input_changed()
 
-    def _cursor_changed(self):
+    def _input_changed(self):
         self._cursor_position_changed()
         self.fresh = False
 
@@ -110,7 +111,7 @@ class ListBuffer(Buffer):
             self.reset()
         cli.pre_run_callables.append(reset_this_buffer)
 
-    def cursor_up(self, count=1):
+    def list_cursor_up(self, count=1):
         candidates = [(index, choice) for index, choice in enumerate(self.choices) if not choice.disabled]
         for pos, (index, choice) in enumerate(candidates):
             if index == self.cursor:
@@ -120,8 +121,8 @@ class ListBuffer(Buffer):
         pos = (pos - count) % len(candidates)
         self.cursor = candidates[pos][0]
 
-    def cursor_down(self, count=1):
-        self.cursor_up(-count)
+    def list_cursor_down(self, count=1):
+        self.list_cursor_up(-count)
 
     def validate(self):
         if self.validation_state != ValidationState.UNKNOWN:
@@ -138,7 +139,6 @@ class ListBuffer(Buffer):
         self.validation_state = ValidationState.VALID
         self.validation_error = None
         return True
-
 
 
 class CheckboxBuffer(ListBuffer):
@@ -176,16 +176,70 @@ class CheckboxBuffer(ListBuffer):
             self.selected.clear()
         else:
             self.selected = set(range(len(self.choices)))
+        self._input_changed()
 
     def invert_selection(self):
         self.selected = set(index for index in range(len(self.choices)) if index not in self.selected)
+        self._input_changed()
 
     def toggle(self, index):
         if index not in self.selected:
             self.selected.add(index)
         else:
             self.selected.remove(index)
+        self._input_changed()
 
+
+class RawListBuffer(ListBuffer):
+    def find_choice_by_num(self, num):
+        pos = 1
+        first = None
+        for index, choice in enumerate(self.choices):
+            if choice.disabled:
+                continue
+            if first is None:
+                first = index
+            if pos == num:
+                return True, index, choice
+            pos += 1
+        return False, first, self.choices[first]
+
+    def _text_changed(self):
+        if not self.text:
+            self.init_default(self.default)
+        else:
+            try:
+                pos = int(self.text)
+            except ValueError:
+                self.cursor = None
+            else:
+                found, index, _choice = self.find_choice_by_num(pos)
+                if found:
+                    self.cursor = index
+                else:
+                    self.cursor = None
+        super(RawListBuffer, self)._text_changed()
+
+    def validate(self):
+        if self.validation_state != ValidationState.UNKNOWN:
+            return self.validation_state == ValidationState.VALID
+
+        if self.cursor is None:
+            self.validation_state = ValidationState.INVALID
+            self.validation_error = ValidationError(message='Please enter a valid index')
+            return False
+
+        if self.validator:
+            try:
+                self.validator.validate(self.get_selected())
+            except ValidationError as ex:
+                self.validation_state = ValidationState.INVALID
+                self.validation_error = ex
+                return False
+
+        self.validation_state = ValidationState.VALID
+        self.validation_error = None
+        return True
 
 class ListControl(TokenListControl):
     def __init__(self):
@@ -211,10 +265,12 @@ class ListControl(TokenListControl):
                 buf.cursor = index
                 buf.accept_action.validate_and_handle(cli, buf)
 
-            tokens.append((token, '%s\n' % choice.name, onclick))
+            tokens.append((token, '%s' % choice.name, onclick))
 
         for i, choice in enumerate(buf.choices):
             _add_choice(i, choice)
+            if i != len(buf.choices) - 1:
+                tokens.append((Token.Space, '\n'))
 
         return tokens
 
@@ -250,9 +306,48 @@ class CheckboxControl(ListControl):
             def onclick(_cli, _mouse_event):
                 buf.toggle(index)
 
-            tokens.extend(zip(choice_tokens, (icon, '%s\n' % choice.name), (onclick, onclick)))
+            tokens.extend(zip(choice_tokens, (icon, '%s' % choice.name), (onclick, onclick)))
 
         for i, choice in enumerate(buf.choices):
             _add_choice(i, choice)
+            if i != len(buf.choices) - 1:
+                tokens.append((Token.Space, '\n'))
+
+        return tokens
+
+
+class RawListControl(ListControl):
+    def get_list_tokens(self, cli): # pylint: disable=no-self-use
+        tokens = []
+        buf = cli.current_buffer
+        def _add_choice(index, num, choice):
+            if index == buf.cursor:
+                token = Token.List.Item.Selected
+                tokens.append((Token.SetCursorPosition, ''))
+            else:
+                token = Token.List.Item
+
+            @if_mousedown
+            def onclick(cli, _mouse_event):
+                buf.cursor = index
+                buf.accept_action.validate_and_handle(cli, buf)
+
+            tokens.append((Token.Space, '  '))
+
+            if not choice.disabled:
+                tokens.append((token, '%d)' % num))
+
+            tokens.extend([
+                (Token.Space, ' '),
+                (token, '%s' % choice.name, onclick),
+            ])
+
+        num = 0
+        for i, choice in enumerate(buf.choices):
+            if not choice.disabled:
+                num += 1
+            _add_choice(i, num, choice)
+            if i != len(buf.choices) - 1:
+                tokens.append((Token.Space, '\n'))
 
         return tokens

@@ -48,3 +48,7 @@ class PasswordProcessor(Processor):
         else:
             tokens = [(Token.Hidden, '[input is hidden]')]
         return Transformation(tokens)
+
+class HideInputProcessor(Processor):
+    def apply_transformation(self, cli, document, lineno, source_to_display, tokens):
+        return Transformation([])
