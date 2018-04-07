@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 from collections import Mapping
-from functools import partial
 
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.shortcuts import run_application
@@ -15,6 +14,11 @@ def get_prompt_tokens_factory(tokens):
     def get_prompt_tokens(_cli):
         return tokens
     return get_prompt_tokens
+
+def bind_answers(func, answers):
+    def _inner(value):
+        return func(value, answers)
+    return _inner
 
 class Prompt(object):
     def __init__(self):
@@ -90,8 +94,7 @@ class Prompt(object):
 
             # bind answers to transformer
             if 'transformer' in kw:
-                transformer = kw.pop('transformer')
-                kw['transformer'] = lambda x: transformer(x, answers)
+                kw['transformer'] = bind_answers(kw['transformer'], answers)
 
             application = getattr(prompts, _type).question(**kw)
             answer = run_application(application, **run_kw)

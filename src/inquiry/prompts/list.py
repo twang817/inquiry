@@ -8,8 +8,9 @@ from ..ui.controls import (
 )
 from ..ui.key_bindings import load_key_bindings_for_list
 from ..ui.layouts import (
-    create_default_layout,
     BufferFresh,
+    create_default_layout,
+    list_window_factory,
 )
 
 
@@ -18,9 +19,7 @@ def question(get_prompt_tokens, choices, default=None, page_size=None, history=N
         get_prompt_tokens=get_prompt_tokens,
         hint='(Use arrow keys)',
         extra_hint_filter=BufferFresh(),
-        reactive_window_class=InfiniteWindow,
-        reactive_control=ListControl(),
-        reactive_page_size=page_size,
+        reactive_window_factory=list_window_factory(InfiniteWindow, ListControl(), page_size),
         hide_cursor=True)
 
     registry = load_key_bindings_for_list()

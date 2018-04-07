@@ -10,8 +10,9 @@ from ..ui.controls import (
 )
 from ..ui.key_bindings import load_key_bindings_for_checkbox
 from ..ui.layouts import (
-    create_default_layout,
     BufferFresh,
+    create_default_layout,
+    list_window_factory,
 )
 
 
@@ -31,9 +32,7 @@ def question(get_prompt_tokens, choices, default=None, validate=None, page_size=
         get_prompt_tokens=get_prompt_tokens,
         hint=hint,
         extra_hint_filter=BufferFresh(),
-        reactive_window_class=InfiniteWindow,
-        reactive_control=CheckboxControl(),
-        reactive_page_size=page_size,
+        reactive_window_factory=list_window_factory(InfiniteWindow, CheckboxControl(), page_size),
         hide_cursor=True)
 
     registry = load_key_bindings_for_checkbox()
