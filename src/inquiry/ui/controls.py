@@ -154,6 +154,9 @@ class CheckboxBuffer(ListBuffer):
         )
 
     def init_default(self, default):
+        for index, choice in enumerate(self.choices):
+            if choice.checked and index not in default:
+                default.append(index)
         for value in default:
             found, index, _ = self.find_choice(value)
             if found:
@@ -367,7 +370,9 @@ class CheckboxControl(ListControl):
         def _add_choice(index, choice):
             choice_tokens = [Token.Checkbox.Icon, Token.Checkbox.Item]
 
-            if index in buf.selected:
+            if choice.disabled:
+                icon = ''
+            elif index in buf.selected:
                 choice_tokens[0] = Token.Checkbox.Icon.Selected
                 icon = '\u25c9 '
             else:
