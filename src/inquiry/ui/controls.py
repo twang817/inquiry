@@ -191,17 +191,17 @@ class CheckboxBuffer(ListBuffer):
 
 
 class RawListBuffer(ListBuffer):
-    def find_choice_by_num(self, num):
-        pos = 1
+    def find_choice_by_position(self, pos):
+        num = 1
         first = None
         for index, choice in enumerate(self.choices):
             if choice.disabled:
                 continue
             if first is None:
                 first = index
-            if pos == num:
+            if num == pos:
                 return True, index, choice
-            pos += 1
+            num += 1
         return False, first, self.choices[first]
 
     def _text_changed(self):
@@ -213,7 +213,7 @@ class RawListBuffer(ListBuffer):
             except ValueError:
                 self.cursor = None
             else:
-                found, index, _choice = self.find_choice_by_num(pos)
+                found, index, _choice = self.find_choice_by_position(pos)
                 if found:
                     self.cursor = index
                 else:
@@ -240,6 +240,91 @@ class RawListBuffer(ListBuffer):
         self.validation_state = ValidationState.VALID
         self.validation_error = None
         return True
+
+
+class ExpandBuffer(RawListBuffer):
+    def __init__(self, choices, default=None, validator=None):
+        self.expanded = False
+        choices.append(Choice(**{
+            'key': 'H',
+            'name': 'Help, list all options',
+        }))
+        super(ExpandBuffer, self).__init__(
+            choices,
+            default=default,
+            validator=validator
+        )
+
+    def init_default(self, default):
+        found, _index, choice = self.find_choice(default)
+        if found:
+            self.default = choice
+        else:
+            self.default = None
+        self.cursor = None
+
+    def find_choice_by_key(self, key):
+        first = None
+        for index, choice in enumerate(self.choices):
+            if choice.disabled:
+                continue
+            if choice.key is None:
+                continue
+            if first is None:
+                first = index
+            if choice.key.lower() == key.lower():
+                return True, index, choice
+        return False, first, self.choices[first]
+
+    def _text_changed(self):
+        self.cursor = None
+        if self.text:
+            found, index, _choice = self.find_choice_by_key(self.text)
+            if found:
+                self.cursor = index
+        ListBuffer._text_changed(self) # pylint: disable=protected-access
+
+    @property
+    def valid_choice(self):
+        return self.find_choice_by_key(self.text)[0]
+
+    def validate(self):
+        if self.validation_state != ValidationState.UNKNOWN:
+            return self.validation_state == ValidationState.VALID
+
+        if not (self.text or self.default) or self.text.lower() == 'h':
+            self.expanded = True
+            self.reset()
+            return False
+
+        if not self.text and self.default:
+            self.text = u'%s' % self.default.key
+
+        if not self.valid_choice:
+            self.validation_state = ValidationState.INVALID
+            self.validation_error = ValidationError(message='Please enter a valid command')
+            return False
+
+        if self.validator:
+            try:
+                self.validator.validate(self.get_selected())
+            except ValidationError as ex:
+                self.validation_state = ValidationState.INVALID
+                self.validation_error = ex
+                return False
+
+        self.validation_state = ValidationState.VALID
+        self.validation_error = None
+        return True
+
+    def accept_handler(self, cli, _buf):
+        choice = self.get_selected()
+        self.text = choice.name
+        cli.set_return_value(choice.value)
+        def reset_this_buffer():
+            self.reset()
+        cli.pre_run_callables.append(reset_this_buffer)
+
 
 class ListControl(TokenListControl):
     def __init__(self):
@@ -276,10 +361,6 @@ class ListControl(TokenListControl):
 
 
 class CheckboxControl(ListControl):
-    def __init__(self):
-        self.selected = set()
-        super(CheckboxControl, self).__init__()
-
     def get_list_tokens(self, cli): # pylint: disable=no-self-use
         tokens = []
         buf = cli.current_buffer
@@ -347,6 +428,41 @@ class RawListControl(ListControl):
             if not choice.disabled:
                 num += 1
             _add_choice(i, num, choice)
+            if i != len(buf.choices) - 1:
+                tokens.append((Token.Space, '\n'))
+
+        return tokens
+
+
+class ExpandControl(ListControl):
+    def get_list_tokens(self, cli): # pylint: disable=no-self-use
+        tokens = []
+        buf = cli.current_buffer
+        def _add_choice(index, choice):
+            if index == buf.cursor:
+                token = Token.List.Item.Selected
+                tokens.append((Token.SetCursorPosition, ''))
+            else:
+                token = Token.List.Item
+
+            @if_mousedown
+            def onclick(cli, _mouse_event):
+                buf.text = u'%s' % choice.key
+                buf.cursor = index
+                buf.accept_action.validate_and_handle(cli, buf)
+
+            tokens.append((Token.Space, '  '))
+
+            if not choice.disabled:
+                tokens.append((token, '%s)' % choice.key.lower()))
+
+            tokens.extend([
+                (Token.Space, ' '),
+                (token, '%s' % choice.name, onclick),
+            ])
+
+        for i, choice in enumerate(buf.choices):
+            _add_choice(i, choice)
             if i != len(buf.choices) - 1:
                 tokens.append((Token.Space, '\n'))
 

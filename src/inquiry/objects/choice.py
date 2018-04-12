@@ -4,9 +4,10 @@ import six
 
 
 class Choice(object):
-    def __init__(self, name, value=None, short=None, disabled=None):
+    def __init__(self, name, value=None, key=None, short=None, disabled=None):
         self._name = name
         self._value = value or name
+        self.key = key
         self.short = short or name
         self.disabled = bool(disabled)
         if self.disabled:

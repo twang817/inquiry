@@ -63,6 +63,21 @@ class NeedsScrollTip(Filter):
     def __call__(self, cli):
         return len(cli.current_buffer.choices) > self.page_size
 
+
+class Expanded(Filter):
+    def __call__(self, cli):
+        return hasattr(cli.current_buffer, 'expanded') and cli.current_buffer.expanded is True
+
+    def __repr__(self):
+        return 'Expanded()'
+
+class BufferValid(Filter):
+    def __call__(self, cli):
+        return hasattr(cli.current_buffer, 'valid_choice') and cli.current_buffer.valid_choice is True
+
+    def __repr__(self):
+        return 'BufferValid()'
+
 def list_window_factory(window_class, control, page_size):
     page_size = page_size or 7
     def _factory():
@@ -96,6 +111,38 @@ def rawlist_window_factory(window_class, control, page_size):
                 dont_extend_height=True,
                 wrap_lines=True,
             )
+        ]
+    return _factory
+
+def expand_window_factory(window_class, control, page_size):
+    def get_expand_short_tokens(cli):
+        buf = cli.current_buffer
+        if buf.text:
+            found, _index, choice = buf.find_choice_by_key(buf.text)
+            if found:
+                return [
+                    (Token.Expand.Short.Prefix, '>>'),
+                    (Token.Space, ' '),
+                    (Token.Expand.Short.Message, choice.name),
+                ]
+        return []
+    def _factory():
+        return [
+            ConditionalContainer(
+                Window(
+                    TokenListControl(get_expand_short_tokens),
+                    dont_extend_height=True,
+                    wrap_lines=True,
+                ),
+                filter=~Expanded() & BufferValid(),
+            ),
+            ConditionalContainer(
+                HSplit(
+                    rawlist_window_factory(window_class, control, page_size)() + [
+                    ]
+                ),
+                filter=Expanded(),
+            ),
         ]
     return _factory
 

@@ -34,6 +34,8 @@ DEFAULT_STYLE = style_from_dict({
     Token.Checkbox.Icon.Selected: 'noinherit #ansidarkgreen',
     Token.Checkbox.Item: 'noinherit',
     Token.Checkbox.Item.Selected: 'noinherit',
+    Token.Expand.Short.Prefix: 'noinherit #ansiturquoise',
+    Token.Expand.Short.Message: 'noinherit',
 })
 
 class Acceptor(AcceptAction):
