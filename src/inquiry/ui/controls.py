@@ -79,17 +79,20 @@ class ListBuffer(Buffer):
             self.choices.append(choice)
 
     def find_choice(self, value):
+        '''finds a choice by value or by position (0-indexed, skips disabled)'''
         first = None
+        pos = 0
         for index, choice in enumerate(self.choices):
             if choice.disabled:
                 continue
             if first is None:
                 first = index
             if isinstance(value, six.integer_types):
-                if index == value:
+                if pos == value:
                     return True, index, choice
             elif choice.value == value:
                 return True, index, choice
+            pos += 1
         return False, first, self.choices[first]
 
     def init_default(self, default):
@@ -105,7 +108,7 @@ class ListBuffer(Buffer):
 
     def accept_handler(self, cli, _buf):
         choice = self.get_selected()
-        self.text = choice.value
+        self.text = u'%s' % choice.short
         cli.set_return_value(choice.value)
         def reset_this_buffer():
             self.reset()
@@ -263,7 +266,8 @@ class ExpandBuffer(RawListBuffer):
         if found:
             self.default = choice
         else:
-            self.default = None
+            found, _index, choice = self.find_choice_by_key('h')
+            self.default = choice
         self.cursor = None
 
     def find_choice_by_key(self, key):
@@ -295,15 +299,16 @@ class ExpandBuffer(RawListBuffer):
         if self.validation_state != ValidationState.UNKNOWN:
             return self.validation_state == ValidationState.VALID
 
-        if not (self.text or self.default) or self.text.lower() == 'h':
+        if not self.text:
+            self.text = u'%s' % self.default.key
+
+        if self.text.lower() == 'h':
             self.expanded = True
             self.reset()
             return False
 
-        if not self.text and self.default:
-            self.text = u'%s' % self.default.key
-
         if not self.valid_choice:
+            self.reset()
             self.validation_state = ValidationState.INVALID
             self.validation_error = ValidationError(message='Please enter a valid command')
             return False

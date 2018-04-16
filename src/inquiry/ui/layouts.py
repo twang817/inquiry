@@ -17,7 +17,10 @@ from prompt_toolkit.layout.controls import (
     TokenListControl,
 )
 from prompt_toolkit.layout.dimension import LayoutDimension
-from prompt_toolkit.layout.processors import ConditionalProcessor
+from prompt_toolkit.layout.processors import (
+    ConditionalProcessor,
+    Transformation,
+)
 from prompt_toolkit.layout.prompt import DefaultPrompt
 from prompt_toolkit.shortcuts import _split_multiline_prompt
 from prompt_toolkit.token import Token
@@ -48,6 +51,12 @@ def _get_default_answer_tokens(_cli):
     return [
         (Token, '  Answer: '),
     ]
+
+class Prompt(DefaultPrompt):
+    def apply_transformation(self, cli, document, lineno, source_to_display, tokens):
+        if lineno == 0:
+            return super(Prompt, self).apply_transformation(cli, document, lineno, source_to_display, tokens)
+        return Transformation(tokens)
 
 class BufferFresh(Filter):
     def __call__(self, cli):
@@ -105,7 +114,7 @@ def rawlist_window_factory(window_class, control, page_size):
             Window(
                 BufferControl(
                     input_processors=[
-                        DefaultPrompt(_get_default_answer_tokens)
+                        Prompt(_get_default_answer_tokens)
                     ],
                 ),
                 dont_extend_height=True,
@@ -171,7 +180,7 @@ def create_default_layout(get_prompt_tokens, get_error_tokens=None, extra_input_
     input_processors.extend([
         ConditionalProcessor(HintProcessor(hint), hint_filter & ~IsDone()),
         ConditionalProcessor(TransformProcessor(transformer), IsDone()),
-        DefaultPrompt(get_prompt_tokens_2),
+        Prompt(get_prompt_tokens_2),
     ])
 
     return HSplit([
